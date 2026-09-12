@@ -1,1 +1,1 @@
-# shishutu-manager
+# 大学生がAIに作らせた支出管理サイト
