@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>支出管理</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f5f6f8;
+    color: #222;
+}
+
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+}
+
+.balance {
+    text-align: center;
+}
+
+.balance-title {
+    color: #666;
+    font-size: 14px;
+}
+
+.balance-amount {
+    font-size: 40px;
+    font-weight: bold;
+    margin: 8px 0;
+}
+
+.income-total {
+    color: #1677ff;
+    font-size: 15px;
+}
+
+.expense-total {
+    color: #e53935;
+    font-size: 15px;
+}
+
+h2 {
+    font-size: 19px;
+    margin-top: 0;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 13px;
+    margin-top: 8px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 16px;
+}
+
+button {
+    border: none;
+    background: #222;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+.income-button {
+    background: #1677ff;
+}
+
+.expense-button {
+    background: #e53935;
+}
+
+.quick-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.quick-buttons button {
+    background: #555;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-left {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.date {
+    font-size: 12px;
+    color: #888;
+}
+
+.memo {
+    font-size: 13px;
+    color: #666;
+}
+
+.income-text {
+    color: #1677ff;
+    font-weight: bold;
+}
+
+.expense-text {
+    color: #e53935;
+    font-weight: bold;
+}
+
+.delete-button {
+    width: auto;
+    padding: 7px 10px;
+    background: #ddd;
+    color: #333;
+    font-size: 13px;
+}
+
+.empty {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+}
+
+.month-control {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.month-control button {
+    width: 50px;
+    padding: 10px;
+}
+
+.month-control input {
+    margin-top: 0;
+}
+
+.clear-button {
+    background: #888;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>💰 支出管理</h1>
+
+<!-- 残高 -->
+<div class="card balance">
+    <div class="balance-title">現在の残高</div>
+    <div class="balance-amount" id="balance">¥0</div>
+
+    <div class="income-total">
+        入金合計：<span id="incomeTotal">¥0</span>
+    </div>
+
+    <div class="expense-total">
+        支出合計：<span id="expenseTotal">¥0</span>
+    </div>
+</div>
+
+
+<!-- 入金 -->
+<div class="card">
+
+<h2>💵 お金を追加</h2>
+
+<input
+    type="number"
+    id="incomeAmount"
+    placeholder="金額を入力"
+    min="0"
+>
+
+<input
+    type="date"
+    id="incomeDate"
+>
+
+<input
+    type="text"
+    id="incomeMemo"
+    placeholder="メモ（給料など）"
+>
+
+<button class="income-button" onclick="addIncome()">
+    ＋ 入金する
+</button>
+
+</div>
+
+
+<!-- 支出 -->
+<div class="card">
+
+<h2>💸 支出を追加</h2>
+
+<input
+    type="number"
+    id="expenseAmount"
+    placeholder="金額を入力"
+    min="0"
+>
+
+<select id="category">
+    <option value="食費">🍚 食費</option>
+    <option value="交通費">🚃 交通費</option>
+    <option value="買い物">🛍️ 買い物</option>
+    <option value="娯楽">🎮 娯楽</option>
+    <option value="通信費">📱 通信費</option>
+    <option value="その他">📦 その他</option>
+</select>
+
+<input
+    type="date"
+    id="expenseDate"
+>
+
+<input
+    type="text"
+    id="expenseMemo"
+    placeholder="メモ"
+>
+
+<button class="expense-button" onclick="addExpense()">
+    − 支出する
+</button>
+
+<h3>よく使う金額</h3>
+
+<div class="quick-buttons">
+    <button onclick="setExpense(500)">¥500</button>
+    <button onclick="setExpense(1000)">¥1,000</button>
+    <button onclick="setExpense(2000)">¥2,000</button>
+</div>
+
+</div>
+
+
+<!-- 月 -->
+<div class="card">
+
+<h2>📅 月別管理</h2>
+
+<div class="month-control">
+
+<button onclick="changeMonth(-1)">←</button>
+
+<input
+    type="month"
+    id="monthSelect"
+    onchange="render()"
+>
+
+<button onclick="changeMonth(1)">→</button>
+
+</div>
+
+</div>
+
+
+<!-- 履歴 -->
+<div class="card">
+
+<h2>📋 履歴</h2>
+
+<div id="history"></div>
+
+</div>
+
+
+<!-- データ -->
+<div class="card">
+
+<h2>⚙️ データ管理</h2>
+
+<button onclick="backupData()">
+    データをバックアップ
+</button>
+
+<br>
+
+<button onclick="document.getElementById('restoreFile').click()">
+    データを復元
+</button>
+
+<input
+    type="file"
+    id="restoreFile"
+    accept=".json"
+    style="display:none"
+    onchange="restoreData(event)"
+>
+
+<br>
+
+<button class="clear-button" onclick="clearData()">
+    すべてのデータを削除
+</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+let data = JSON.parse(
+    localStorage.getItem("expenseManagerData")
+) || {
+    incomes: [],
+    expenses: []
+};
+
+
+// 今日の日付
+const today = new Date();
+
+document.getElementById("incomeDate").value =
+    formatDate(today);
+
+document.getElementById("expenseDate").value =
+    formatDate(today);
+
+document.getElementById("monthSelect").value =
+    formatMonth(today);
+
+
+// 日付
+function formatDate(date) {
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+
+    return `${y}-${m}-${d}`;
+}
+
+
+// 月
+function formatMonth(date) {
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+
+    return `${y}-${m}`;
+}
+
+
+// 保存
+function saveData() {
+
+    localStorage.setItem(
+        "expenseManagerData",
+        JSON.stringify(data)
+    );
+
+    render();
+}
+
+
+// 入金追加
+function addIncome() {
+
+    const amount =
+        Number(document.getElementById("incomeAmount").value);
+
+    const date =
+        document.getElementById("incomeDate").value;
+
+    const memo =
+        document.getElementById("incomeMemo").value;
+
+    if (!amount || amount <= 0) {
+
+        alert("金額を入力してください");
+
+        return;
+    }
+
+    data.incomes.push({
+
+        id: Date.now(),
+
+        amount: amount,
+
+        date: date,
+
+        memo: memo || "入金"
+
+    });
+
+    document.getElementById("incomeAmount").value = "";
+
+    document.getElementById("incomeMemo").value = "";
+
+    saveData();
+}
+
+
+// 支出追加
+function addExpense() {
+
+    const amount =
+        Number(document.getElementById("expenseAmount").value);
+
+    const category =
+        document.getElementById("category").value;
+
+    const date =
+        document.getElementById("expenseDate").value;
+
+    const memo =
+        document.getElementById("expenseMemo").value;
+
+    if (!amount || amount <= 0) {
+
+        alert("金額を入力してください");
+
+        return;
+    }
+
+    data.expenses.push({
+
+        id: Date.now(),
+
+        amount: amount,
+
+        category: category,
+
+        date: date,
+
+        memo: memo || ""
+
+    });
+
+    document.getElementById("expenseAmount").value = "";
+
+    document.getElementById("expenseMemo").value = "";
+
+    saveData();
+}
+
+
+// クイック金額
+function setExpense(amount) {
+
+    document.getElementById("expenseAmount").value = amount;
+
+}
+
+
+// 金額表示
+function yen(amount) {
+
+    return "¥" + amount.toLocaleString("ja-JP");
+
+}
+
+
+// 表示
+function render() {
+
+    const incomeTotal =
+        data.incomes.reduce(
+            (sum, item) => sum + item.amount,
+            0
+        );
+
+    const expenseTotal =
+        data.expenses.reduce(
+            (sum, item) => sum + item.amount,
+            0
+        );
+
+    const balance =
+        incomeTotal - expenseTotal;
+
+
+    document.getElementById("balance").textContent =
+        yen(balance);
+
+    document.getElementById("incomeTotal").textContent =
+        yen(incomeTotal);
+
+    document.getElementById("expenseTotal").textContent =
+        yen(expenseTotal);
+
+
+    renderHistory();
+
+}
+
+
+// 履歴表示
+function renderHistory() {
+
+    const month =
+        document.getElementById("monthSelect").value;
+
+    const incomes =
+        data.incomes
+        .filter(item => item.date.startsWith(month))
+        .map(item => ({
+            ...item,
+            type: "income"
+        }));
+
+
+    const expenses =
+        data.expenses
+        .filter(item => item.date.startsWith(month))
+        .map(item => ({
+            ...item,
+            type: "expense"
+        }));
+
+
+    const history =
+        [...incomes, ...expenses]
+        .sort((a,b) =>
+            new Date(b.date) - new Date(a.date)
+        );
+
+
+    const container =
+        document.getElementById("history");
+
+
+    if (history.length === 0) {
+
+        container.innerHTML =
+            '<div class="empty">この月の履歴はありません</div>';
+
+        return;
+    }
+
+
+    container.innerHTML =
+        history.map(item => {
+
+            if (item.type === "income") {
+
+                return `
+
+                <div class="history-item">
+
+                    <div class="history-left">
+
+                        <strong>
+                            💵 ${item.memo}
+                        </strong>
+
+                        <span class="date">
+                            ${item.date}
+                        </span>
+
+                    </div>
+
+                    <div>
+
+                        <span class="income-text">
+                            +${yen(item.amount)}
+                        </span>
+
+                        <button
+                            class="delete-button"
+                            onclick="deleteIncome(${item.id})"
+                        >
+                            削除
+                        </button>
+
+                    </div>
+
+                </div>
+
+                `;
+
+            } else {
+
+                return `
+
+                <div class="history-item">
+
+                    <div class="history-left">
+
+                        <strong>
+                            ${item.category}
+                        </strong>
+
+                        <span class="date">
+                            ${item.date}
+                        </span>
+
+                        ${
+                            item.memo
+                            ? `<span class="memo">${item.memo}</span>`
+                            : ""
+                        }
+
+                    </div>
+
+                    <div>
+
+                        <span class="expense-text">
+                            -${yen(item.amount)}
+                        </span>
+
+                        <button
+                            class="delete-button"
+                            onclick="deleteExpense(${item.id})"
+                        >
+                            削除
+                        </button>
+
+                    </div>
+
+                </div>
+
+                `;
+
+            }
+
+        }).join("");
+
+}
+
+
+// 入金削除
+function deleteIncome(id) {
+
+    if (!confirm("この入金を削除しますか？")) {
+        return;
+    }
+
+    data.incomes =
+        data.incomes.filter(
+            item => item.id !== id
+        );
+
+    saveData();
+
+}
+
+
+// 支出削除
+function deleteExpense(id) {
+
+    if (!confirm("この支出を削除しますか？")) {
+        return;
+    }
+
+    data.expenses =
+        data.expenses.filter(
+            item => item.id !== id
+        );
+
+    saveData();
+
+}
+
+
+// 月変更
+function changeMonth(amount) {
+
+    const input =
+        document.getElementById("monthSelect");
+
+    const current =
+        new Date(input.value + "-01");
+
+    current.setMonth(
+        current.getMonth() + amount
+    );
+
+    input.value =
+        formatMonth(current);
+
+    render();
+
+}
+
+
+// バックアップ
+function backupData() {
+
+    const json =
+        JSON.stringify(data, null, 2);
+
+    const blob =
+        new Blob(
+            [json],
+            {type: "application/json"}
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const a =
+        document.createElement("a");
+
+    a.href = url;
+
+    a.download = "支出管理バックアップ.json";
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+// 復元
+function restoreData(event) {
+
+    const file =
+        event.target.files[0];
+
+    if (!file) return;
+
+    const reader =
+        new FileReader();
+
+    reader.onload = function(e) {
+
+        try {
+
+            data =
+                JSON.parse(e.target.result);
+
+            saveData();
+
+            alert("データを復元しました");
+
+        } catch {
+
+            alert("データの読み込みに失敗しました");
+
+        }
+
+    };
+
+    reader.readAsText(file);
+
+}
+
+
+// 全削除
+function clearData() {
+
+    if (
+        !confirm(
+            "すべての入金・支出データを削除しますか？"
+        )
+    ) {
+        return;
+    }
+
+    data = {
+        incomes: [],
+        expenses: []
+    };
+
+    saveData();
+
+}
+
+
+// 初期表示
+render();
+
+</script>
+
+</body>
+</html>
+このバージョンの動き
+作成していい？
